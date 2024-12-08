@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
-import "../css/LoginPage.css"; // Import CSS
 import { Link } from "react-router-dom";
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Box,
+} from "@mui/material";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -47,27 +53,68 @@ const Login = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Login</h1>
-      <label>Username:</label>
-      <input
-        type="text"
-        name="username"
-        value={formData.username}
-        onChange={handleChange}
-      />
-      <label>Password:</label>
-      <input
-        type="password"
-        name="password"
-        value={formData.password}
-        onChange={handleChange}
-      />
-      <button type="submit">Login</button>
-      <p>
-        Don't have an account? <Link to="/register">Register here</Link>
-      </p>
-    </form>
+    <Container maxWidth="sm">
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 3,
+          marginTop: 5,
+          padding: 4,
+          border: "1px solid #ccc",
+          borderRadius: 2,
+          boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        <Typography variant="h4" component="h1" gutterBottom>
+          Login
+        </Typography>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            width: "100%",
+          }}
+        >
+          <TextField
+            label="Username"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            fullWidth
+            required
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2 }}
+          >
+            Login
+          </Button>
+        </Box>
+        <Typography variant="body2">
+          Don't have an account?{" "}
+          <Link to="/register" style={{ textDecoration: "none", color: "#1976d2" }}>
+            Register here
+          </Link>
+        </Typography>
+      </Box>
+    </Container>
   );
 };
 

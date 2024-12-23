@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 import { Link } from "react-router-dom";
 import {
   Container,
@@ -8,15 +8,17 @@ import {
   TextField,
   Button,
   Box,
+  Alert,
 } from "@mui/material";
 
 const Login = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    role: "",
   });
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,30 +27,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await API.post("/auth/login", formData);
-      console.log("formData", formData);
-      alert(response.data.message);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("role", response.data.username);
-      console.log("role", response.data.role);
+    setError("");
 
-      // Redirect based on role
-      switch (formData.username) {
-        case "admin":
-          navigate("/admin");
-          break;
-        case "operator":
-          navigate("/operator");
-          break;
-        case "commuter":
-          navigate("/commuter");
-          break;
-        default:
-          navigate("/");
-      }
+    try {
+      const { role } = await login(formData);
+      navigate(`/${role}`);
     } catch (error) {
-      alert(error.response?.data?.message || "Login failed");
+      setError(error.message);
     }
   };
 
@@ -70,6 +55,11 @@ const Login = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Login
         </Typography>
+        {error && (
+          <Alert severity="error" sx={{ width: "100%" }}>
+            {error}
+          </Alert>
+        )}
         <Box
           component="form"
           onSubmit={handleSubmit}
@@ -109,7 +99,10 @@ const Login = () => {
         </Box>
         <Typography variant="body2">
           Don't have an account?{" "}
-          <Link to="/register" style={{ textDecoration: "none", color: "#1976d2" }}>
+          <Link
+            to="/register"
+            style={{ textDecoration: "none", color: "#1976d2" }}
+          >
             Register here
           </Link>
         </Typography>

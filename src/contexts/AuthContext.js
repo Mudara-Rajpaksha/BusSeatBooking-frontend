@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import API from "../services/api";
+import api from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -8,15 +8,16 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const initializeAuth = async () => {
+      const token = localStorage.getItem("token");
       if (token) {
         try {
-          const response = await API.get("/auth/verify");
-          setUser(response.data.user);
+          const response = await api.post("/auth/refresh-token");
+          const { accessToken, user } = response.data.data;
+          localStorage.setItem("token", accessToken);
+          setUser(user);
         } catch (error) {
           localStorage.removeItem("token");
-          localStorage.removeItem("role");
         }
       }
       setIsLoading(false);
@@ -27,29 +28,46 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const response = await API.post("/auth/login", credentials);
+      const response = await api.post("/auth/login", credentials);
       const { accessToken, user } = response.data.data;
-
       localStorage.setItem("token", accessToken);
       setUser(user);
-
-      return { success: true, role: user.role };
+      return { success: true, user };
     } catch (error) {
       throw new Error(error.response?.data?.message || "Login failed");
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    setUser(null);
+  const register = async (userData) => {
+    try {
+      const response = await api.post("/auth/register", userData);
+      const { accessToken, user } = response.data.data;
+      localStorage.setItem("token", accessToken);
+      setUser(user);
+      return { success: true, user };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Registration failed");
+    }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } finally {
+      localStorage.removeItem("token");
+      setUser(null);
+    }
+  };
+
+  const value = {
+    user,
+    isLoading,
+    login,
+    logout,
+    register,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

@@ -30,17 +30,18 @@ const AdminPage = () => {
   });
   const [view, setView] = useState("grid");
 
+  const fetchRoutes = async () => {
+    try {
+      const response = await API.get("/routes");
+      setRoutes(response.data.data);
+    } catch (error) {
+      console.error("Error fetching routes:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        const response = await API.get("/routes");
-        setRoutes(response.data);
-      } catch (error) {
-        console.error("Error fetching routes:", error);
-      }
-    };
     fetchRoutes();
-  }, []);
+  }, [routes]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,7 +51,7 @@ const AdminPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post("/routes", form);
+      await API.post("/routes/add", form);
       alert("New route added successfully!");
       setForm({
         origin: "",
@@ -60,8 +61,7 @@ const AdminPage = () => {
         price: "",
       });
       setView("grid");
-      const response = await API.get("/routes");
-      setRoutes(response.data);
+      fetchRoutes();
     } catch (error) {
       console.error("Error adding route:", error);
     }
@@ -71,7 +71,6 @@ const AdminPage = () => {
     <Container sx={{ marginBottom: 50 }}>
       <Box
         component="form"
-        onSubmit={handleSubmit}
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -108,18 +107,20 @@ const AdminPage = () => {
             <TableBody>
               {routes.length > 0 ? (
                 routes.map((route) => (
-                  <TableRow key={route.id}>
-                    <TableCell>{route.id}</TableCell>
+                  <TableRow key={route._id}>
+                    <TableCell>{route._id}</TableCell>
                     <TableCell>{route.origin}</TableCell>
                     <TableCell>{route.destination}</TableCell>
-                    <TableCell>{route.schedule}</TableCell>
+                    <TableCell>
+                      {new Date(route.schedule).toLocaleString()}
+                    </TableCell>
                     <TableCell>{route.operator}</TableCell>
-                    <TableCell>{route.price}</TableCell>
+                    <TableCell>${route.price}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={8} align="center">
                     No routes found.
                   </TableCell>
                 </TableRow>
@@ -199,7 +200,7 @@ const AdminPage = () => {
           sx={{
             display: "flex",
             justifyContent: "end",
-            gap: 1, // Spacing between the buttons
+            gap: 1,
           }}
         >
           <Button
@@ -207,9 +208,9 @@ const AdminPage = () => {
             variant="contained"
             color="primary"
             sx={{
-              width: "100px", // Set a fixed width for the button
-              height: "40px", // Set a fixed height
-              fontSize: "13px", // Adjust font size
+              width: "100px",
+              height: "40px",
+              fontSize: "13px",
               padding: "10px 20px",
             }}
             startIcon={<AddIcon sx={{ fontSize: 13 }} />}
@@ -217,13 +218,21 @@ const AdminPage = () => {
             Add
           </Button>
           <Button
-            type="submit"
             variant="contained"
             color="warning"
+            onClick={() =>
+              setForm({
+                origin: "",
+                destination: "",
+                schedule: "",
+                operator: "",
+                price: "",
+              })
+            }
             sx={{
-              width: "100px", // Set a fixed width for the button
-              height: "40px", // Set a fixed height
-              fontSize: "13px", // Adjust font size
+              width: "100px",
+              height: "40px",
+              fontSize: "13px",
               padding: "10px 20px",
             }}
             startIcon={<CleaningServicesIcon sx={{ fontSize: 13 }} />}
@@ -235,9 +244,9 @@ const AdminPage = () => {
             color="error"
             onClick={() => setView("grid")}
             sx={{
-              width: "100px", // Set a fixed width for the button
-              height: "40px", // Set a fixed height
-              fontSize: "13px", // Adjust font size
+              width: "100px",
+              height: "40px",
+              fontSize: "13px",
               padding: "10px 20px",
             }}
             startIcon={<CloseIcon sx={{ fontSize: 13 }} />}

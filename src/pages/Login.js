@@ -30,8 +30,9 @@ const Login = () => {
     setError("");
 
     try {
-      const { role } = await login(formData);
-      navigate(`/${role}`);
+      const { user } = await login(formData);
+      console.log(user);
+      navigate(`/${user.role}`);
     } catch (error) {
       setError(error.message);
     }

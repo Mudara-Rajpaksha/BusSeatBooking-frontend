@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Typography,
@@ -12,45 +12,32 @@ import {
   DialogTitle,
   Box,
 } from "@mui/material";
+import API from "../services/api";
 
 const CommuterPage = () => {
+  const [trips, setTrips] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const routes = [
-    {
-      id: 1,
-      name: "Route A",
-      price: 15,
-      timeSlots: [
-        { time: "10:00 AM", availableSeats: ["A1", "A2", "B1", "B2"] },
-        { time: "2:00 PM", availableSeats: ["A1", "B2", "B3"] },
-      ],
-    },
-    {
-      id: 2,
-      name: "Route B",
-      price: 20,
-      timeSlots: [
-        { time: "9:00 AM", availableSeats: ["A1", "B1", "B2"] },
-        { time: "12:00 PM", availableSeats: ["A2", "B1", "B3"] },
-      ],
-    },
-    {
-      id: 3,
-      name: "Route C",
-      price: 25,
-      timeSlots: [
-        { time: "11:00 AM", availableSeats: ["A1", "A2", "B2"] },
-        { time: "3:00 PM", availableSeats: ["A3", "B1", "B3"] },
-      ],
-    },
-  ];
+  useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const response = await API.get("/trip");
+        if (response.data.status === "success") {
+          setTrips(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching trip data:", error);
+      }
+    };
 
-  const handleRouteSelect = (route) => {
-    setSelectedRoute(route);
+    fetchTrips();
+  }, []);
+
+  const handleRouteSelect = (trip) => {
+    setSelectedRoute(trip);
     setSelectedTimeSlot(null); // Reset time slot when a new route is selected
     setSelectedSeat(null); // Reset seat selection
   };
@@ -64,11 +51,22 @@ const CommuterPage = () => {
     setSelectedSeat(seat);
   };
 
-  const handleConfirmBooking = () => {
-    alert(
-      `Booking Confirmed for ${selectedRoute.name} on ${selectedTimeSlot.time} at seat ${selectedSeat}`
-    );
-    setOpenConfirmDialog(false);
+  const handleConfirmBooking = async () => {
+    console.log(selectedRoute.id,selectedSeat);
+    try {
+      await API.post("/bookings/add", {
+        tripId: selectedRoute.id,
+        seatNumber: selectedSeat,
+      });
+      alert("Seat booking successfully!");
+      setOpenConfirmDialog(false);
+    } catch (error) {
+      console.error("Error seat booking:", error);
+    }
+    // alert(
+    //   `Booking Confirmed for ${selectedRoute.route.origin} to ${selectedRoute.route.destination} on ${selectedTimeSlot} at seat ${selectedSeat}`
+    // );
+    // setOpenConfirmDialog(false);
   };
 
   const handleCancelSeatSelection = () => {
@@ -92,15 +90,17 @@ const CommuterPage = () => {
       >
         <Typography variant="h6">Select a Route</Typography>
         <Grid container spacing={2}>
-          {routes.map((route) => (
-            <Grid item xs={12} sm={4} key={route.id}>
+          {trips.map((trip) => (
+            <Grid item xs={12} sm={4} key={trip.id}>
               <Card
-                onClick={() => handleRouteSelect(route)}
+                onClick={() => handleRouteSelect(trip)}
                 style={{ cursor: "pointer" }}
               >
                 <CardContent>
-                  <Typography variant="h6">{route.name}</Typography>
-                  <Typography variant="body2">${route.price}</Typography>
+                  <Typography variant="h6">
+                    {trip.route.origin} to {trip.route.destination}
+                  </Typography>
+                  <Typography variant="body2">${trip.route.price}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -122,18 +122,15 @@ const CommuterPage = () => {
             Select a Time Slot
           </Typography>
           <Grid container spacing={2}>
-            {selectedRoute.timeSlots.map((slot, index) => (
+            {selectedRoute.route.schedule.map((slot, index) => (
               <Grid item xs={12} sm={4} key={index}>
                 <Button
                   variant="outlined"
-                  color={
-                    slot.availableSeats.length > 0 ? "primary" : "disabled"
-                  }
-                  disabled={slot.availableSeats.length === 0}
+                  color="primary"
                   onClick={() => handleTimeSlotSelect(slot)}
                   fullWidth
                 >
-                  {slot.time}
+                  {slot}
                 </Button>
               </Grid>
             ))}
@@ -155,15 +152,18 @@ const CommuterPage = () => {
             Select a Seat
           </Typography>
           <Grid container spacing={2}>
-            {selectedTimeSlot.availableSeats.map((seat) => (
-              <Grid item xs={4} key={seat}>
+            {selectedRoute.bus.seats.map((seat) => (
+              <Grid item xs={4} key={seat.seatNumber}>
                 <Button
                   variant="outlined"
-                  color={seat === selectedSeat ? "secondary" : "primary"}
-                  onClick={() => handleSeatSelect(seat)}
+                  color={
+                    seat.seatNumber === selectedSeat ? "secondary" : "primary"
+                  }
+                  disabled={seat.isBooked}
+                  onClick={() => handleSeatSelect(seat.seatNumber)}
                   fullWidth
                 >
-                  {seat}
+                  {seat.seatNumber}
                 </Button>
               </Grid>
             ))}
@@ -175,7 +175,7 @@ const CommuterPage = () => {
       {selectedSeat && selectedRoute && selectedTimeSlot && (
         <>
           <Typography variant="h6" style={{ marginTop: "20px" }}>
-            Price: ${selectedRoute.price}
+            Price: ${selectedRoute.route.price}
           </Typography>
           <Button
             variant="contained"
@@ -204,14 +204,16 @@ const CommuterPage = () => {
         <DialogTitle>Confirm Your Booking</DialogTitle>
         <DialogContent>
           <Typography variant="body1">
-            Route: {selectedRoute ? selectedRoute.name : "Not selected"}
+            Route:{" "}
+            {selectedRoute
+              ? `${selectedRoute.route.origin} to ${selectedRoute.route.destination}`
+              : "Not selected"}
             <br />
-            Time Slot:{" "}
-            {selectedTimeSlot ? selectedTimeSlot.time : "Not selected"}
+            Time Slot: {selectedTimeSlot || "Not selected"}
             <br />
-            Seat: {selectedSeat ? selectedSeat : "Not selected"}
+            Seat: {selectedSeat || "Not selected"}
             <br />
-            Price: ${selectedRoute ? selectedRoute.price : "N/A"}
+            Price: ${selectedRoute ? selectedRoute.route.price : "N/A"}
           </Typography>
         </DialogContent>
         <DialogActions>

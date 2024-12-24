@@ -106,7 +106,6 @@ function OperatorPage() {
   };
 
   const handleAssignBus = async () => {
-    console.log("Assigned:", busAssignments);
     try {
       await API.post("/trip/add", busAssignments);
       alert("Bus assigned to Route successfully!");

@@ -6,48 +6,41 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const response = await api.post("/auth/refresh-token");
-          const { accessToken, user } = response.data.data;
-          localStorage.setItem("token", accessToken);
+          const response = await api.get("/auth/me");
+          const { user } = response.data.data;
           setUser(user);
         } catch (error) {
           localStorage.removeItem("token");
         }
       }
       setIsLoading(false);
+      setIsInitialized(true);
     };
 
     initializeAuth();
   }, []);
 
   const login = async (credentials) => {
-    try {
-      const response = await api.post("/auth/login", credentials);
-      const { accessToken, user } = response.data.data;
-      localStorage.setItem("token", accessToken);
-      setUser(user);
-      return { success: true, user };
-    } catch (error) {
-      throw new Error(error.response?.data?.message || "Login failed");
-    }
+    const response = await api.post("/auth/login", credentials);
+    const { accessToken, user } = response.data.data;
+    localStorage.setItem("token", accessToken);
+    setUser(user);
+    return { success: true, user };
   };
 
   const register = async (userData) => {
-    try {
-      const response = await api.post("/auth/register", userData);
-      const { accessToken, user } = response.data.data;
-      localStorage.setItem("token", accessToken);
-      setUser(user);
-      return { success: true, user };
-    } catch (error) {
-      throw new Error(error.response?.data?.message || "Registration failed");
-    }
+    const response = await api.post("/auth/register", userData);
+    const { accessToken, user } = response.data.data;
+    localStorage.setItem("token", accessToken);
+    setUser(user);
+    return { success: true, user };
   };
 
   const logout = async () => {
@@ -59,15 +52,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const value = {
-    user,
-    isLoading,
-    login,
-    logout,
-    register,
-  };
+  if (!isInitialized) {
+    return null; // or a loading component
+  }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        logout,
+        register,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

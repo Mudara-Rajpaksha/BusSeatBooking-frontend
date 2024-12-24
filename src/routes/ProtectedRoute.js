@@ -5,10 +5,13 @@ export const ProtectedRoute = ({ allowedRoles }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>; // Consider using a proper loading component
+    return <div>Loading...</div>;
   }
 
   if (!user) {
+    // Store the attempted URL
+    const currentPath = window.location.pathname;
+    localStorage.setItem("redirectAfterLogin", currentPath);
     return <Navigate to="/login" replace />;
   }
 

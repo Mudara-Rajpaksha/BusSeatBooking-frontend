@@ -58,6 +58,7 @@ function OperatorPage() {
   const [view, setView] = useState("tabs");
   const [busData, setBusData] = useState([]);
   const [routes, setRoutes] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [busAssignments, setBusAssignments] = useState({
     route: "",
     bus: "",
@@ -72,6 +73,7 @@ function OperatorPage() {
   useEffect(() => {
     fetchBusData();
     fetchRoutes();
+    fetchBooking();
   }, []);
 
   const fetchBusData = async () => {
@@ -90,6 +92,18 @@ function OperatorPage() {
       const response = await API.get("/routes");
       if (response.data.status === "success") {
         setRoutes(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching routes:", error);
+    }
+  };
+
+  const fetchBooking = async () => {
+    try {
+      const response = await API.get("/bookings");
+      if (response.data.status === "success") {
+        console.log("hello", response.data.data.bookings);
+        setBookings(response.data.data.bookings);
       }
     } catch (error) {
       console.error("Error fetching routes:", error);
@@ -268,9 +282,12 @@ function OperatorPage() {
             color="inherit"
             onClick={handleLogout}
             sx={{
-              width: "100px",
+              width: "100px", // Fixed width for the button
+              backgroundColor: "#f44336", // Red background color for logout
+              borderRadius: "12px", // Rounded corners
+              padding: "10px 20px", // Padding for the button
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                backgroundColor: "#d32f2f", // Darker red on hover
               },
             }}
           >
@@ -348,17 +365,33 @@ function OperatorPage() {
                   <TableCell>Bookings</TableCell>
                 </TableRow>
               </TableHead>
+
               <TableBody>
-                <TableRow>
-                  <TableCell>Route 101</TableCell>
-                  <TableCell>Bus A</TableCell>
-                  <TableCell>45</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Route 202</TableCell>
-                  <TableCell>Bus B</TableCell>
-                  <TableCell>30</TableCell>
-                </TableRow>
+                {Object.entries(
+                  bookings.reduce((acc, booking) => {
+                    const busRegNumber = booking.trip.bus.registrationNumber;
+                    const route = `${booking.trip.route.origin} → ${booking.trip.route.destination}`;
+
+                    // Create a unique key combining bus number and route
+                    const key = `${busRegNumber}-${route}`;
+
+                    if (!acc[key]) {
+                      acc[key] = {
+                        route: route,
+                        bus: busRegNumber,
+                        count: 0,
+                      };
+                    }
+                    acc[key].count += 1;
+                    return acc;
+                  }, {})
+                ).map(([key, { route, bus, count }]) => (
+                  <TableRow key={key}>
+                    <TableCell>{route}</TableCell>
+                    <TableCell>{bus}</TableCell>
+                    <TableCell>{count}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </Paper>

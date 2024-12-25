@@ -13,8 +13,10 @@ import {
   Box,
 } from "@mui/material";
 import API from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const CommuterPage = () => {
+  const { logout } = useAuth();
   const [trips, setTrips] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
@@ -22,29 +24,29 @@ const CommuterPage = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
   useEffect(() => {
-    const fetchTrips = async () => {
-      try {
-        const response = await API.get("/trip");
-        if (response.data.status === "success") {
-          setTrips(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching trip data:", error);
-      }
-    };
-
     fetchTrips();
   }, []);
 
+  const fetchTrips = async () => {
+    try {
+      const response = await API.get("/trip");
+      if (response.data.status === "success") {
+        setTrips(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching trip data:", error);
+    }
+  };
+
   const handleRouteSelect = (trip) => {
     setSelectedRoute(trip);
-    setSelectedTimeSlot(null); // Reset time slot when a new route is selected
-    setSelectedSeat(null); // Reset seat selection
+    setSelectedTimeSlot(null);
+    setSelectedSeat(null);
   };
 
   const handleTimeSlotSelect = (timeSlot) => {
     setSelectedTimeSlot(timeSlot);
-    setSelectedSeat(null); // Reset seat selection when a new time slot is chosen
+    setSelectedSeat(null);
   };
 
   const handleSeatSelect = (seat) => {
@@ -52,32 +54,56 @@ const CommuterPage = () => {
   };
 
   const handleConfirmBooking = async () => {
-    console.log(selectedRoute.id,selectedSeat);
+    console.log(selectedRoute.id, selectedSeat);
     try {
       await API.post("/bookings/add", {
         tripId: selectedRoute.id,
         seatNumber: selectedSeat,
       });
-      alert("Seat booking successfully!");
+      setSelectedRoute(null);
+      setSelectedTimeSlot(null);
+      setSelectedSeat(null);
       setOpenConfirmDialog(false);
+      fetchTrips();
+      alert("Seat booking successfully!");
     } catch (error) {
       console.error("Error seat booking:", error);
     }
-    // alert(
-    //   `Booking Confirmed for ${selectedRoute.route.origin} to ${selectedRoute.route.destination} on ${selectedTimeSlot} at seat ${selectedSeat}`
-    // );
-    // setOpenConfirmDialog(false);
   };
 
   const handleCancelSeatSelection = () => {
-    setSelectedSeat(null); // Reset seat selection
+    setSelectedSeat(null);
+  };
+
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
     <Container>
-      <Typography variant="h4" gutterBottom>
-        Commuter Booking
-      </Typography>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
+        <Typography variant="h4">Commuter Booking</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{
+            backgroundColor: "#f44336", // Red background color for logout
+            borderRadius: "12px", // Rounded corners
+            padding: "10px 20px", // Padding for the button
+            "&:hover": {
+              backgroundColor: "#d32f2f", // Darker red on hover
+            },
+          }}
+          onClick={handleLogout}
+        >
+          Logout
+        </Button>
+      </Box>
 
       {/* View Routes */}
       <Box
